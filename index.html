@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragster Lab — TSA CO2 Dragster Physics &amp; Rules Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#12161a;
+    --bg-panel:#181e24;
+    --bg-panel-2:#1e2630;
+    --line:#2a333c;
+    --line-strong:#3a4550;
+    --text:#e9ecf1;
+    --text-dim:#8b96a3;
+    --text-faint:#5c6672;
+    --blue:#4f9dff;
+    --blue-dim:#2c4d7a;
+    --orange:#ff6a39;
+    --orange-dim:#7a3a24;
+    --green:#35d07f;
+    --red:#ff4757;
+    --amber:#ffb020;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Barlow',sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:48px 48px;
+    background-position:-1px -1px;
+    background-attachment:fixed;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  a{color:var(--blue);}
+  h1,h2,h3{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.02em; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(18,22,26,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:56px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:'Oswald'; font-weight:600; letter-spacing:0.06em; font-size:15px;}
+  .brand .dot{width:9px; height:9px; background:var(--orange); border-radius:1px; box-shadow:0 0 10px var(--orange);}
+  .navlinks{display:flex; gap:26px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em;}
+  .navlinks a{color:var(--text-dim); text-decoration:none; border-bottom:1px solid transparent; padding-bottom:4px;}
+  .navlinks a:hover{color:var(--text); border-bottom-color:var(--orange);}
+  @media (max-width:720px){ .navlinks{display:none;} }
+
+  /* ---------- HERO ---------- */
+  header.hero{padding:64px 0 40px; border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:'JetBrains Mono'; font-size:12px; color:var(--orange); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .eyebrow::before{content:''; width:26px; height:1px; background:var(--orange);}
+  h1.title{font-size:clamp(34px,5.2vw,58px); line-height:0.98; font-weight:700; color:var(--text); max-width:14ch;}
+  h1.title em{font-style:normal; color:var(--blue);}
+  .sub{max-width:56ch; color:var(--text-dim); font-size:17px; margin-top:18px;}
+  .hero-grid{display:grid; grid-template-columns:1.1fr 0.9fr; gap:32px; margin-top:36px; align-items:start;}
+  @media (max-width:880px){ .hero-grid{grid-template-columns:1fr;} }
+
+  .delta-card{background:var(--bg-panel); border:1px solid var(--line); padding:20px 22px;}
+  .delta-card h3{font-size:14px; color:var(--text-dim); font-weight:500; letter-spacing:0.06em; margin-bottom:14px;}
+  .delta-row{display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:9px 0; border-top:1px solid var(--line); font-size:14px;}
+  .delta-row:first-of-type{border-top:none;}
+  .delta-row .label{color:var(--text-dim);}
+  .delta-row .old{color:var(--text-faint); text-decoration:line-through; text-decoration-color:var(--text-faint);}
+  .delta-row .new{color:var(--orange); font-weight:600;}
+  .delta-card .note{margin-top:14px; font-size:12.5px; color:var(--text-faint); line-height:1.5;}
+
+  /* ---------- TRACK / SIGNATURE ELEMENT ---------- */
+  .track-panel{background:var(--bg-panel); border:1px solid var(--line);}
+  .track-head{display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line);}
+  .track-head h3{font-size:13px; color:var(--text-dim); font-weight:500; letter-spacing:0.06em;}
+  .lights{display:flex; gap:6px;}
+  .lights span{width:9px; height:9px; border-radius:50%; background:#3a2418; transition:background 0.15s;}
+  .lights span.on{background:var(--amber); box-shadow:0 0 8px var(--amber);}
+  .lights span.go.on{background:var(--green); box-shadow:0 0 8px var(--green);}
+  canvas#track{display:block; width:100%; height:150px;}
+  .readouts{display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line);}
+  .readout{padding:12px 16px; border-left:1px solid var(--line);}
+  .readout:first-child{border-left:none;}
+  .readout .k{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em;}
+  .readout .v{font-family:'JetBrains Mono'; font-size:20px; color:var(--text); margin-top:3px;}
+  .readout .v.blue{color:var(--blue);}
+  .readout .v.orange{color:var(--orange);}
+  .track-controls{display:flex; gap:10px; padding:14px 18px; border-top:1px solid var(--line); flex-wrap:wrap; align-items:center;}
+
+  /* ---------- BUTTONS / INPUTS ---------- */
+  button{
+    font-family:'Barlow'; font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:0.05em;
+    padding:9px 16px; border-radius:var(--radius); cursor:pointer; border:1px solid var(--line-strong);
+    background:var(--bg-panel-2); color:var(--text); transition:all .12s;
+  }
+  button:hover{border-color:var(--blue); color:var(--blue);}
+  button.primary{background:var(--orange); border-color:var(--orange); color:#1a0f0a;}
+  button.primary:hover{background:#ff7f57; color:#1a0f0a; border-color:#ff7f57;}
+  button.ghost{background:transparent;}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  select, input[type=number]{
+    font-family:'JetBrains Mono'; font-size:13px; background:var(--bg-panel-2); color:var(--text);
+    border:1px solid var(--line-strong); border-radius:var(--radius); padding:7px 9px; width:100%;
+  }
+  select:focus, input:focus{outline:none; border-color:var(--blue);}
+  label.field{display:block; font-size:12px; color:var(--text-dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.04em;}
+
+  /* ---------- SECTIONS ---------- */
+  section{padding:64px 0; border-bottom:1px solid var(--line);}
+  .section-head{display:flex; align-items:baseline; gap:16px; margin-bottom:8px;}
+  .section-num{font-family:'JetBrains Mono'; color:var(--orange); font-size:13px;}
+  h2.section-title{font-size:clamp(24px,3vw,32px);}
+  .section-desc{color:var(--text-dim); max-width:64ch; margin-top:12px; font-size:15px;}
+
+  /* rules table */
+  .rules-table{width:100%; border-collapse:collapse; margin-top:28px; font-size:14px;}
+  .rules-table th{text-align:left; font-family:'JetBrains Mono'; font-weight:500; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; padding:10px 12px; border-bottom:1px solid var(--line-strong);}
+  .rules-table td{padding:11px 12px; border-bottom:1px solid var(--line); color:var(--text-dim);}
+  .rules-table tr:hover td{color:var(--text); background:rgba(255,255,255,0.015);}
+  .rules-table td.mono, .rules-table th.mono{font-family:'JetBrains Mono';}
+  .rules-table td.changed{color:var(--orange);}
+  .tag{display:inline-block; font-family:'JetBrains Mono'; font-size:10px; padding:2px 6px; border:1px solid var(--orange); color:var(--orange); border-radius:2px; margin-left:8px; letter-spacing:0.04em;}
+
+  /* checker */
+  .checker-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:32px;}
+  @media (max-width:880px){ .checker-grid{grid-template-columns:1fr;} }
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .form-grid .full{grid-column:1 / -1;}
+  .year-toggle{display:flex; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden; width:fit-content; margin-bottom:22px;}
+  .year-toggle button{border:none; border-radius:0; background:var(--bg-panel-2);}
+  .year-toggle button.active{background:var(--blue); color:#0a1420;}
+  .spec-result{background:var(--bg-panel); border:1px solid var(--line);}
+  .spec-row{display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .spec-row:last-child{border-bottom:none;}
+  .spec-row .name{color:var(--text-dim);}
+  .spec-row .val{font-family:'JetBrains Mono'; color:var(--text);}
+  .badge{font-family:'JetBrains Mono'; font-size:10.5px; padding:2px 8px; border-radius:10px; letter-spacing:0.04em;}
+  .badge.pass{background:rgba(53,208,127,0.12); color:var(--green); border:1px solid rgba(53,208,127,0.35);}
+  .badge.fail{background:rgba(255,71,87,0.12); color:var(--red); border:1px solid rgba(255,71,87,0.35);}
+  .verdict{padding:16px; text-align:center; font-family:'Oswald'; letter-spacing:0.04em; font-size:15px;}
+  .verdict.pass{background:rgba(53,208,127,0.1); color:var(--green);}
+  .verdict.fail{background:rgba(255,71,87,0.1); color:var(--red);}
+
+  /* lab */
+  .lab-grid{display:grid; grid-template-columns:320px 1fr; gap:32px; margin-top:32px; align-items:start;}
+  @media (max-width:920px){ .lab-grid{grid-template-columns:1fr;} }
+  .lab-panel{background:var(--bg-panel); border:1px solid var(--line); padding:20px;}
+  .lab-panel h4{font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px;}
+  .design-toggle{display:flex; gap:6px; margin-bottom:18px;}
+  .design-toggle button{flex:1; padding:7px; font-size:11px;}
+  .design-toggle button.a.active{background:var(--blue); border-color:var(--blue); color:#0a1420;}
+  .design-toggle button.b.active{background:var(--orange); border-color:var(--orange); color:#1a0f0a;}
+  .slider-row{margin-bottom:16px;}
+  .slider-row .row-top{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+  .slider-row .row-top .v{font-family:'JetBrains Mono'; color:var(--text);}
+  input[type=range]{-webkit-appearance:none; width:100%; height:2px; background:var(--line-strong); border-radius:2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:13px; height:13px; background:var(--blue); border-radius:50%; cursor:pointer; border:2px solid var(--bg);}
+  input[type=range]::-moz-range-thumb{width:13px; height:13px; background:var(--blue); border-radius:50%; cursor:pointer; border:2px solid var(--bg);}
+  .legend{display:flex; gap:18px; margin-top:10px; font-size:12px; color:var(--text-dim);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:12px; height:2px; display:inline-block;}
+  .chart-wrap{background:var(--bg-panel); border:1px solid var(--line); padding:18px; margin-bottom:20px;}
+  .chart-wrap h4{font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px;}
+  .compare-row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--line); margin-top:18px; border:1px solid var(--line);}
+  .compare-cell{background:var(--bg-panel); padding:16px;}
+  .compare-cell .k{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em;}
+  .compare-cell .a{font-family:'JetBrains Mono'; font-size:19px; color:var(--blue); margin-top:4px;}
+  .compare-cell .b{font-family:'JetBrains Mono'; font-size:19px; color:var(--orange); margin-top:4px;}
+  .compare-cell .diff{font-size:11px; color:var(--text-faint); margin-top:6px;}
+
+  footer{padding:48px 0 80px;}
+  footer p{color:var(--text-faint); font-size:13px; max-width:70ch;}
+  footer .sources{margin-top:18px; font-size:12.5px; color:var(--text-faint);}
+  footer .sources a{color:var(--text-dim);}
+  .disclaimer{border:1px solid var(--line); background:var(--bg-panel); padding:16px 18px; margin-top:24px; font-size:12.5px; color:var(--text-dim);}
+  .disclaimer strong{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> DRAGSTER&nbsp;LAB</div>
+    <div class="navlinks">
+      <a href="#rules">Rule Delta</a>
+      <a href="#checker">Legal Checker</a>
+      <a href="#lab">Physics Lab</a>
+      <a href="#sources">Sources</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">2027 → 2028 High School Rule Change</div>
+    <h1 class="title">The car got longer.<br>The floor got <em>much heavier.</em></h1>
+    <p class="sub">TSA's High School Dragster Design event reverses course for 2027-2028: after 2026 pushed toward shorter, lighter cars, the new guide grows the body and raises the mass floor sharply &mdash; 60g minimum in 2027, 85g in 2028. Judging changed too: a formal Documentation Portfolio replaces the old loose drawing + materials list, and GenAI use is now explicitly <em>permitted</em>, with a required AI-use reflection. This tool checks your design against both years and simulates the 20m run under a physics model you can calibrate against your own timed runs.</p>
+
+    <div class="hero-grid">
+      <div class="delta-card">
+        <h3>What actually changed</h3>
+        <div class="delta-row"><span class="label">Body length, min</span><span class="old mono">2026: 250mm</span><span class="new mono">2027&rarr;28: 265&rarr;290mm</span></div>
+        <div class="delta-row"><span class="label">Body length, max</span><span class="old mono">2026: 260mm</span><span class="new mono">2027&rarr;28: 275&rarr;300mm</span></div>
+        <div class="delta-row"><span class="label">Body mass, min</span><span class="old mono">2026: 50g</span><span class="new mono">2027&rarr;28: 60&rarr;85g</span></div>
+        <div class="delta-row"><span class="label">Documentation</span><span class="old mono">drawing + list</span><span class="new mono">→ full portfolio</span></div>
+        <div class="delta-row"><span class="label">GenAI tools</span><span class="old mono">banned</span><span class="new mono">→ permitted</span></div>
+        <p class="note">Source: TSA High School Competitive Events Guide for the 2027 and 2028 National Conferences, Dragster Design event (Rule DB, official specification table). This is a genuine reversal of the 2025→2026 shrink-the-car trend &mdash; 2027-2028 cars are bigger and meaningfully heavier at the floor, which changes launch dynamics.</p>
+      </div>
+
+      <div class="track-panel">
+        <div class="track-head">
+          <h3>20m telemetry</h3>
+          <div class="lights" id="lights">
+            <span class="on"></span><span></span><span></span><span class="go"></span>
+          </div>
+        </div>
+        <canvas id="track" width="600" height="150"></canvas>
+        <div class="readouts">
+          <div class="readout"><div class="k">Elapsed</div><div class="v mono" id="ro-time">0.000s</div></div>
+          <div class="readout"><div class="k">Speed</div><div class="v blue" id="ro-speed">0.0 m/s</div></div>
+          <div class="readout"><div class="k">Distance</div><div class="v" id="ro-dist">0.0 m</div></div>
+          <div class="readout"><div class="k">Finish (Design A)</div><div class="v orange" id="ro-finish">—</div></div>
+        </div>
+        <div class="track-controls">
+          <button class="primary" id="btn-launch">Launch</button>
+          <select id="playback-speed" style="width:auto;">
+            <option value="1">Real time</option>
+            <option value="0.3" selected>Slow‑mo 0.3×</option>
+            <option value="0.1">Slow‑mo 0.1×</option>
+          </select>
+          <span style="font-size:12px; color:var(--text-faint); margin-left:auto;">Uses Design A parameters from the Physics Lab below.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="rules">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">01</span><h2 class="section-title">Full spec table, both years</h2></div>
+    <p class="section-desc">Every dimensional rule from the official High School Dragster Design event guide for 2027–2028. Highlighted rows are the only ones that differ between the two competition years — everything else has held steady.</p>
+    <table class="rules-table">
+      <thead><tr><th>Spec</th><th class="mono">2027 min</th><th class="mono">2027 max</th><th class="mono">2028 min</th><th class="mono">2028 max</th></tr></thead>
+      <tbody id="rules-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="checker">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">02</span><h2 class="section-title">Legal design checker</h2></div>
+    <p class="section-desc">Enter your dragster's measurements and check them against either rule year. Values pre-fill with a design that's legal under the 2028 spec — edit them to test your own.</p>
+
+    <div class="year-toggle" id="checker-year-toggle">
+      <button data-year="2027">2027 rules</button>
+      <button data-year="2028" class="active">2028 rules</button>
+    </div>
+
+    <div class="checker-grid">
+      <div class="form-grid" id="checker-form"></div>
+      <div>
+        <div class="spec-result" id="checker-results"></div>
+        <div class="verdict" id="checker-verdict" style="margin-top:1px;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="lab">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">03</span><h2 class="section-title">Physics lab</h2></div>
+    <p class="section-desc">A launch‑impulse model: a short CO2 thrust pulse accelerates the car, then rolling resistance and aerodynamic drag slow it over the 20m course. Tune two designs side by side — try a 2027-spec car (shorter, lighter minimum) against a 2028-spec car (longer, heavier minimum) with everything else held equal.</p>
+
+    <div class="lab-grid">
+      <div class="lab-panel">
+        <div class="design-toggle">
+          <button class="a active" id="tab-a" data-tab="a">Design A</button>
+          <button class="b" id="tab-b" data-tab="b">Design B</button>
+        </div>
+        <div id="lab-controls"></div>
+      </div>
+
+      <div>
+        <div class="chart-wrap">
+          <h4>Velocity vs. time</h4>
+          <canvas id="chart-v" height="90"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <h4>Position vs. time</h4>
+          <canvas id="chart-x" height="90"></canvas>
+        </div>
+        <div class="compare-row" id="compare-row"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sources">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">04</span><h2 class="section-title">Method &amp; sources</h2></div>
+    <p class="section-desc">Rule numbers are pulled directly from the official TSA event guide. The physics model is a standard launch-and-coast approximation — it is <strong>not</strong> an official TSA tool and doesn't know your bearings, your wood, or your track surface. Calibrate the thrust and friction sliders against a stopwatch time from your own car for a result that means something.</p>
+
+    <div class="disclaimer">
+      <strong>Not affiliated with TSA.</strong> This is an independent engineering aid built from the publicly posted High School Competitive Events Guide. Always check the current-year Themes &amp; Problems page at tsaweb.org for special annual design challenges before finalizing a build — the spec table above covers dimensional/mass rules only. It does <strong>not</strong> cover the Documentation Portfolio requirements (title page, technical drawing, materials list, and the required Resources &amp; AI Reflection form) or the semifinal scoring rubric — check the official rating form for those.
+    </div>
+
+    <div class="sources">
+      Primary source: TSA High School Competitive Events Guide for the 2027 and 2028 National TSA Conferences — Dragster Design event (Rule DB/A/S/P/E/W, Regulations &amp; Requirements, Official Rating Form). This guide also formally permits GenAI use for this event (with a required Resources and AI Reflection form) — a reversal from the outright GenAI ban in the 2025–2026 guide.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Built as a static, dependency-light page — drop the <code class="mono">index.html</code> straight into a GitHub Pages repo and it runs with no build step.</p>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   RULE DATA — High School Dragster Design, official guide
+   ============================================================ */
+const RULES = [
+  {label:"Body length",            unit:"mm", y27:[265,275],   y28:[290,300],   changed:true},
+  {label:"Body mass (no CO2)",     unit:"g",  y27:[60,null],   y28:[85,null],   changed:true},
+  {label:"Body height w/ wheels",  unit:"mm", y27:[null,75],   y28:[null,75],   changed:false},
+  {label:"Body width at axle",     unit:"mm", y27:[35,42],     y28:[35,42],     changed:false},
+  {label:"Total vehicle width",    unit:"mm", y27:[null,90],   y28:[null,90],   changed:false},
+  {label:"Axle hole above floor",  unit:"mm", y27:[5,10],      y28:[5,10],      changed:false},
+  {label:"Axle hole from ends",    unit:"mm", y27:[15,100],    y28:[15,100],    changed:false},
+  {label:"Wheelbase",              unit:"mm", y27:[105,null],  y28:[105,null],  changed:false},
+  {label:"Front wheel diameter",   unit:"mm", y27:[30,40],     y28:[30,40],     changed:false},
+  {label:"Front wheel width",      unit:"mm", y27:[1.5,5],     y28:[1.5,5],     changed:false},
+  {label:"Rear wheel diameter",    unit:"mm", y27:[35,40],     y28:[35,40],     changed:false},
+  {label:"Rear wheel width",       unit:"mm", y27:[12,18],     y28:[12,18],     changed:false},
+  {label:"Screw eye spacing",      unit:"mm", y27:[150,null],  y28:[150,null],  changed:false},
+  {label:"Screw eye inner diam.",  unit:"mm", y27:[3,5],       y28:[3,5],       changed:false},
+  {label:"Power plant hole depth", unit:"mm", y27:[45,55],     y28:[45,55],     changed:false},
+  {label:"CO2 safety zone thick.", unit:"mm", y27:[5,null],    y28:[5,null],    changed:false},
+  {label:"CO2 chamber diameter",   unit:"mm", y27:[19,20],     y28:[19,20],     changed:false},
+  {label:"Chamber low pt to track",unit:"mm", y27:[26,40],     y28:[26,40],     changed:false},
+];
+
+function fmt(v, unit){ return v===null || v===undefined ? "—" : v + (unit||""); }
+
+const tbody = document.getElementById('rules-tbody');
+RULES.forEach(r=>{
+  const tr = document.createElement('tr');
+  const cls = r.changed ? ' class="changed"' : '';
+  tr.innerHTML = `<td>${r.label}${r.changed?'<span class="tag">changed</span>':''}</td>
+    <td class="mono"${cls}>${fmt(r.y27[0], r.unit)}</td>
+    <td class="mono"${cls}>${fmt(r.y27[1], r.unit)}</td>
+    <td class="mono"${cls}>${fmt(r.y28[0], r.unit)}</td>
+    <td class="mono"${cls}>${fmt(r.y28[1], r.unit)}</td>`;
+  tbody.appendChild(tr);
+});
+
+/* ============================================================
+   LEGAL CHECKER
+   ============================================================ */
+const CHECK_FIELDS = [
+  {key:"length",       label:"Body length",         unit:"mm", ruleIdx:0,  def:295},
+  {key:"mass",         label:"Body mass (no CO2)",  unit:"g",  ruleIdx:1,  def:90},
+  {key:"height",       label:"Body height w/ wheels",unit:"mm",ruleIdx:2,  def:60},
+  {key:"axlewidth",    label:"Width at axle",       unit:"mm", ruleIdx:3,  def:38},
+  {key:"totalwidth",   label:"Total vehicle width", unit:"mm", ruleIdx:4,  def:88},
+  {key:"wheelbase",    label:"Wheelbase",           unit:"mm", ruleIdx:7,  def:112},
+  {key:"frontdiam",    label:"Front wheel diameter",unit:"mm", ruleIdx:8,  def:34},
+  {key:"frontwidth",   label:"Front wheel width",   unit:"mm", ruleIdx:9,  def:3},
+  {key:"reardiam",     label:"Rear wheel diameter", unit:"mm", ruleIdx:10, def:38},
+  {key:"rearwidth",    label:"Rear wheel width",    unit:"mm", ruleIdx:11, def:15},
+  {key:"eyespacing",   label:"Screw eye spacing",   unit:"mm", ruleIdx:12, def:155},
+  {key:"chamberdepth", label:"CO2 hole depth",      unit:"mm", ruleIdx:14, def:50},
+  {key:"chamberdiam",  label:"CO2 chamber diameter",unit:"mm", ruleIdx:16, def:19.5},
+];
+
+const form = document.getElementById('checker-form');
+CHECK_FIELDS.forEach(f=>{
+  const div = document.createElement('div');
+  div.innerHTML = `<label class="field">${f.label} (${f.unit})</label>
+    <input type="number" step="0.1" id="chk-${f.key}" value="${f.def}">`;
+  form.appendChild(div);
+});
+
+let checkerYear = '2028';
+document.querySelectorAll('#checker-year-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#checker-year-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    checkerYear = btn.dataset.year;
+    runCheck();
+  });
+});
+
+function runCheck(){
+  const results = document.getElementById('checker-results');
+  const verdict = document.getElementById('checker-verdict');
+  results.innerHTML = '';
+  let allPass = true;
+  CHECK_FIELDS.forEach(f=>{
+    const val = parseFloat(document.getElementById(`chk-${f.key}`).value);
+    const rule = RULES[f.ruleIdx];
+    const range = checkerYear === '2027' ? rule.y27 : rule.y28;
+    const [min,max] = range;
+    const pass = (min===null || val>=min) && (max===null || val<=max);
+    if(!pass) allPass = false;
+    const rangeTxt = `${min===null?'':min}${min!==null&&max!==null?'–':''}${max===null?'+':max}${f.unit}`;
+    const row = document.createElement('div');
+    row.className = 'spec-row';
+    row.innerHTML = `<span class="name">${f.label}</span>
+      <span class="val">${val}${f.unit} <span style="color:var(--text-faint)">/ ${rangeTxt}</span></span>
+      <span class="badge ${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</span>`;
+    results.appendChild(row);
+  });
+  verdict.className = 'verdict ' + (allPass ? 'pass' : 'fail');
+  verdict.textContent = allPass
+    ? `LEGAL UNDER ${checkerYear} DIMENSIONAL RULES`
+    : `NOT LEGAL UNDER ${checkerYear} RULES — SEE FAILED ROWS`;
+}
+form.addEventListener('input', runCheck);
+runCheck();
+
+/* ============================================================
+   PHYSICS ENGINE
+   Launch impulse (trapezoidal CO2 thrust) + rolling resistance
+   + quadratic aero drag, integrated with RK4 to 20m.
+   ============================================================ */
+const TRACK_LEN = 20; // meters
+const AIR_RHO = 1.225;
+
+function thrustAt(t, p){
+  // trapezoid: ramp up, hold, ramp down
+  const {burnTime} = p;
+  const t1 = burnTime*0.15, t2 = burnTime*0.55, t3 = burnTime;
+  if (t<=0 || t>=t3) return 0;
+  if (t<t1) return p.peakThrust * (t/t1);
+  if (t<t2) return p.peakThrust;
+  return p.peakThrust * (1 - (t-t2)/(t3-t2));
+}
+
+function simulate(p){
+  // p: massG (body, no CO2), cartridgeG, peakThrust(N), burnTime(s), mu, cd, frontalArea(m2)
+  const m = (p.massG + p.cartridgeG) / 1000; // kg
+  const mEff = m * 1.03; // small rotational-inertia allowance
+  const g = 9.81;
+  const dt = 0.0004;
+  let t=0, x=0, v=0;
+  const T=[0], X=[0], V=[0];
+  let finishTime = null;
+  const maxT = 4.0;
+
+  function accel(t,v){
+    const Fthrust = thrustAt(t,p);
+    const Froll = v>0 ? p.mu*mEff*g : 0;
+    const Fdrag = 0.5*AIR_RHO*p.cd*p.frontalArea*v*v*(v>0?1:-1);
+    let F = Fthrust - Froll - Fdrag;
+    if (v<=0 && Fthrust<=Froll) F = Math.max(F,0); // don't roll backward from resistance
+    return F/mEff;
+  }
+
+  while(t<maxT && x<TRACK_LEN){
+    // RK4 step on v, simple Euler on x (fine at this dt)
+    const k1 = accel(t,v);
+    const k2 = accel(t+dt/2, v+k1*dt/2);
+    const k3 = accel(t+dt/2, v+k2*dt/2);
+    const k4 = accel(t+dt, v+k3*dt);
+    const dv = (dt/6)*(k1+2*k2+2*k3+k4);
+    v = Math.max(0, v+dv);
+    x += v*dt;
+    t += dt;
+    if (Math.round(t/dt) % 25 === 0){ T.push(t); X.push(x); V.push(v); }
+    if (x>=TRACK_LEN && finishTime===null) finishTime = t;
+    if (v<=0 && t>0.05 && x<TRACK_LEN && thrustAt(t,p)===0){
+      // stalled before finish
+      break;
+    }
+  }
+  return {T,X,V, finishTime, topSpeed: Math.max(...V), finished: finishTime!==null};
+}
+
+/* ============================================================
+   LAB UI — two designs, sliders drive both the charts and
+   the hero track animation (Design A)
+   ============================================================ */
+const PARAM_DEFS = [
+  {key:'massG',        label:'Body mass',        unit:'g',   min:35,  max:110, step:1,   a:65,  b:90},
+  {key:'cartridgeG',   label:'CO2 cartridge mass',unit:'g',  min:8,   max:24,  step:1,   a:16,  b:16},
+  {key:'peakThrust',   label:'Peak thrust',      unit:'N',   min:5,   max:60,  step:1,   a:28,  b:28},
+  {key:'burnTime',     label:'Burn duration',    unit:'s',   min:0.08,max:0.4, step:0.01,a:0.18,b:0.18},
+  {key:'mu',           label:'Rolling resistance μ',unit:'', min:0.01,max:0.08,step:0.005,a:0.03,b:0.03},
+  {key:'cd',           label:'Drag coefficient Cd',unit:'',  min:0.5, max:1.3, step:0.05,a:0.85,b:0.85},
+  {key:'frontalArea',  label:'Frontal area',     unit:'m²',  min:0.0015,max:0.004,step:0.0001,a:0.0026,b:0.0022},
+];
+
+const state = {
+  a: Object.fromEntries(PARAM_DEFS.map(p=>[p.key,p.a])),
+  b: Object.fromEntries(PARAM_DEFS.map(p=>[p.key,p.b])),
+};
+let activeTab = 'a';
+
+const labControls = document.getElementById('lab-controls');
+function renderLabControls(){
+  labControls.innerHTML='';
+  PARAM_DEFS.forEach(p=>{
+    const val = state[activeTab][p.key];
+    const row = document.createElement('div');
+    row.className='slider-row';
+    row.innerHTML = `<div class="row-top"><span>${p.label}</span><span class="v mono" id="lv-${p.key}">${val}${p.unit}</span></div>
+      <input type="range" id="ls-${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${val}">`;
+    labControls.appendChild(row);
+    row.querySelector('input').addEventListener('input', e=>{
+      state[activeTab][p.key] = parseFloat(e.target.value);
+      document.getElementById(`lv-${p.key}`).textContent = state[activeTab][p.key] + p.unit;
+      runLab();
+    });
+  });
+}
+document.getElementById('tab-a').addEventListener('click', ()=>switchTab('a'));
+document.getElementById('tab-b').addEventListener('click', ()=>switchTab('b'));
+function switchTab(t){
+  activeTab=t;
+  document.getElementById('tab-a').classList.toggle('active', t==='a');
+  document.getElementById('tab-b').classList.toggle('active', t==='b');
+  renderLabControls();
+}
+renderLabControls();
+
+let chartV, chartX, lastSimA=null, lastSimB=null;
+function runLab(){
+  const pa = state.a, pb = state.b;
+  lastSimA = simulate(pa);
+  lastSimB = simulate(pb);
+
+  const labelsMax = Math.max(lastSimA.T.length, lastSimB.T.length);
+  const tAxis = (lastSimA.T.length>=lastSimB.T.length? lastSimA.T : lastSimB.T).map(t=>t.toFixed(2));
+
+  const dsV = [
+    {label:'Design A', data:lastSimA.T.map((t,i)=>({x:t,y:lastSimA.V[i]})), borderColor:'#4f9dff', backgroundColor:'transparent', pointRadius:0, borderWidth:2, tension:0.15},
+    {label:'Design B', data:lastSimB.T.map((t,i)=>({x:t,y:lastSimB.V[i]})), borderColor:'#ff6a39', backgroundColor:'transparent', pointRadius:0, borderWidth:2, tension:0.15},
+  ];
+  const dsX = [
+    {label:'Design A', data:lastSimA.T.map((t,i)=>({x:t,y:lastSimA.X[i]})), borderColor:'#4f9dff', backgroundColor:'transparent', pointRadius:0, borderWidth:2, tension:0.15},
+    {label:'Design B', data:lastSimB.T.map((t,i)=>({x:t,y:lastSimB.X[i]})), borderColor:'#ff6a39', backgroundColor:'transparent', pointRadius:0, borderWidth:2, tension:0.15},
+  ];
+
+  const axisColor = '#5c6672';
+  const gridColor = 'rgba(255,255,255,0.05)';
+  const chartOpts = (yLabel)=>({
+    responsive:true,
+    animation:false,
+    interaction:{mode:'nearest', intersect:false},
+    scales:{
+      x:{type:'linear', title:{display:true, text:'time (s)', color:axisColor}, ticks:{color:axisColor}, grid:{color:gridColor}},
+      y:{title:{display:true, text:yLabel, color:axisColor}, ticks:{color:axisColor}, grid:{color:gridColor}}
+    },
+    plugins:{legend:{labels:{color:'#8b96a3', boxWidth:14, font:{family:'JetBrains Mono', size:11}}}}
+  });
+
+  if(!chartV){
+    chartV = new Chart(document.getElementById('chart-v'), {type:'line', data:{datasets:dsV}, options:chartOpts('m/s')});
+    chartX = new Chart(document.getElementById('chart-x'), {type:'line', data:{datasets:dsX}, options:chartOpts('meters')});
+  } else {
+    chartV.data.datasets = dsV; chartV.update();
+    chartX.data.datasets = dsX; chartX.update();
+  }
+
+  const cmp = document.getElementById('compare-row');
+  const fA = lastSimA.finished ? lastSimA.finishTime.toFixed(3)+'s' : 'DNF';
+  const fB = lastSimB.finished ? lastSimB.finishTime.toFixed(3)+'s' : 'DNF';
+  let diffTxt = '—';
+  if(lastSimA.finished && lastSimB.finished){
+    const d = lastSimA.finishTime - lastSimB.finishTime;
+    diffTxt = (d>=0?'B faster by ':'A faster by ') + Math.abs(d).toFixed(3)+'s';
+  }
+  cmp.innerHTML = `
+    <div class="compare-cell"><div class="k">20m Time</div><div class="a">${fA}</div><div class="b">${fB}</div><div class="diff">${diffTxt}</div></div>
+    <div class="compare-cell"><div class="k">Top Speed</div><div class="a">${lastSimA.topSpeed.toFixed(1)} m/s</div><div class="b">${lastSimB.topSpeed.toFixed(1)} m/s</div><div class="diff">${(lastSimA.topSpeed*2.237).toFixed(1)} / ${(lastSimB.topSpeed*2.237).toFixed(1)} mph</div></div>
+    <div class="compare-cell"><div class="k">Total Mass</div><div class="a">${(pa.massG+pa.cartridgeG)}g</div><div class="b">${(pb.massG+pb.cartridgeG)}g</div><div class="diff">incl. CO2 cartridge</div></div>
+  `;
+
+  document.getElementById('ro-finish').textContent = lastSimA.finished ? lastSimA.finishTime.toFixed(3)+'s' : 'DNF';
+}
+runLab();
+
+/* ============================================================
+   HERO TRACK ANIMATION — plays Design A's simulated run
+   ============================================================ */
+const trackCanvas = document.getElementById('track');
+const ctx = trackCanvas.getContext('2d');
+function sizeCanvas(){
+  const ratio = window.devicePixelRatio||1;
+  const w = trackCanvas.clientWidth, h = trackCanvas.clientHeight;
+  trackCanvas.width = w*ratio; trackCanvas.height = h*ratio;
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+}
+window.addEventListener('resize', ()=>{sizeCanvas(); drawTrack(0,0,0);});
+sizeCanvas();
+
+function drawTrack(x, v, t){
+  const w = trackCanvas.clientWidth, h = trackCanvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const padL=24, padR=24, laneY=h*0.62;
+  const trackW = w-padL-padR;
+  // lane
+  ctx.strokeStyle='#2a333c'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(padL,laneY); ctx.lineTo(w-padR,laneY); ctx.stroke();
+  // distance markers
+  for(let d=0; d<=20; d+=5){
+    const mx = padL + (d/20)*trackW;
+    ctx.strokeStyle = d===20 ? '#ff6a39' : '#3a4550';
+    ctx.beginPath(); ctx.moveTo(mx,laneY-10); ctx.lineTo(mx,laneY+10); ctx.stroke();
+    ctx.fillStyle='#5c6672'; ctx.font='10px JetBrains Mono';
+    ctx.fillText(d+'m', mx-8, laneY+24);
+  }
+  // finish flag
+  ctx.fillStyle='#ff6a39'; ctx.font='10px JetBrains Mono';
+  ctx.fillText('FINISH', w-padR-30, laneY-16);
+  // car
+  const cx = padL + Math.min(x/20,1)*trackW;
+  ctx.fillStyle='#4f9dff';
+  ctx.beginPath();
+  ctx.moveTo(cx-14, laneY-4);
+  ctx.lineTo(cx+10, laneY-4);
+  ctx.lineTo(cx+14, laneY);
+  ctx.lineTo(cx+10, laneY+4);
+  ctx.lineTo(cx-14, laneY+4);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#12161a';
+  ctx.beginPath(); ctx.arc(cx-8,laneY+4,3,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+6,laneY+4,3,0,7); ctx.fill();
+  // exhaust glow while thrust active
+  if (t < state.a.burnTime){
+    ctx.fillStyle='rgba(255,106,57,0.6)';
+    ctx.beginPath(); ctx.arc(cx-16, laneY, 5+Math.random()*3, 0, 7); ctx.fill();
+  }
+}
+drawTrack(0,0,0);
+
+let raceAnim = null;
+document.getElementById('btn-launch').addEventListener('click', launch);
+
+function launch(){
+  if(raceAnim) cancelAnimationFrame(raceAnim);
+  const speedMult = parseFloat(document.getElementById('playback-speed').value);
+  const sim = simulate(state.a);
+  const lights = document.querySelectorAll('#lights span');
+  lights.forEach(l=>l.classList.remove('on'));
+  document.getElementById('btn-launch').disabled = true;
+
+  let stage=0;
+  const seq = setInterval(()=>{
+    if(stage<3){ lights[stage].classList.add('on'); stage++; }
+    else{
+      clearInterval(seq);
+      lights.forEach(l=>l.classList.remove('on'));
+      lights[3].classList.add('on');
+      runRace(sim, speedMult);
+    }
+  }, 260);
+}
+
+function runRace(sim, speedMult){
+  const start = performance.now();
+  function frame(now){
+    const simT = ((now-start)/1000) * speedMult;
+    // find nearest sample
+    let i = 0;
+    while(i<sim.T.length-1 && sim.T[i] < simT) i++;
+    const x = sim.X[i]||0, v = sim.V[i]||0;
+    drawTrack(x, v, simT);
+    document.getElementById('ro-time').textContent = simT.toFixed(3)+'s';
+    document.getElementById('ro-speed').textContent = v.toFixed(1)+' m/s';
+    document.getElementById('ro-dist').textContent = x.toFixed(1)+' m';
+    if(x<20 && simT < sim.T[sim.T.length-1]){
+      raceAnim = requestAnimationFrame(frame);
+    } else {
+      document.getElementById('btn-launch').disabled = false;
+      document.getElementById('ro-dist').textContent = Math.min(x,20).toFixed(1)+' m';
+    }
+  }
+  raceAnim = requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
